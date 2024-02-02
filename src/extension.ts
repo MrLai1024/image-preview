@@ -1,26 +1,41 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import path from "path";
+import vscode, {
+  ExtensionContext,
+  Position,
+  TextDocument,
+  CancellationToken,
+  Hover,
+} from "vscode";
+import { isImportModule } from "./utils";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: ExtensionContext) {
+  console.log("Image Hover Preview Started!");
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "image-preview" is now active!');
+  const settings = vscode.workspace.getConfiguration("imageHover");
+  const { languages } = settings;
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('image-preview.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from image-preview!');
-	});
+  async function provideHover(document: TextDocument, position: Position) {
+    const fileName = document.fileName;
+    const { line: lineNum, character: colNum } = position;
+    const lineText = document.lineAt(lineNum).text;
+    const dir = path.dirname(fileName);
 
-	context.subscriptions.push(disposable);
+    if (isImportModule(lineText)) {
+      return;
+    }
+
+    console.log("lineText", lineText);
+    console.log("dir", fileName);
+
+    return new Hover("aa");
+  }
+  languages.forEach((language: string) => {
+    vscode.languages.registerHoverProvider(language, {
+      provideHover,
+    });
+  });
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  console.log("deactivate");
+}

@@ -9,15 +9,32 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "image-preview.helloWorld",
-        "title": "Hello World"
+    "configuration": {
+      "title": "Image Hover",
+      "properties": {
+        "imageHover.languages": {
+          "type": "array",
+          "default": [
+            "css",
+            "javascript",
+            "less",
+            "scss",
+            "typescriptreact",
+            "typescript",
+            "javascriptreact",
+            "html",
+            "markdown",
+            "vue"
+          ],
+          "description": "Supported Languages"
+        }
       }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
