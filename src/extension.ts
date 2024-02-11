@@ -3,10 +3,10 @@ import vscode, {
   ExtensionContext,
   Position,
   TextDocument,
-  CancellationToken,
   Hover,
+  MarkdownString,
 } from "vscode";
-import { isImportModule } from "./utils";
+import { isImportModule, fetchImgInfo, isCompleteHttpUrl } from "./utils";
 
 export function activate(context: ExtensionContext) {
   console.log("Image Hover Preview Started!");
@@ -15,6 +15,7 @@ export function activate(context: ExtensionContext) {
   const { languages } = settings;
 
   async function provideHover(document: TextDocument, position: Position) {
+    let reqUrl = "";
     const fileName = document.fileName;
     const { line: lineNum, character: colNum } = position;
     const lineText = document.lineAt(lineNum).text;
@@ -24,11 +25,30 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    console.log("lineText", lineText);
-    console.log("dir", fileName);
+    const imgUrl = lineText?.trim().match(/(`|')([^`]*)(`|')/)?.[1] || "";
 
-    return new Hover("aa");
+    if (isCompleteHttpUrl(imgUrl)) {
+      reqUrl = imgUrl;
+    } else {
+      reqUrl = `https://img.betterwood.com/minapp${imgUrl?.split("}")[1]}`;
+    }
+
+    // console.log("lineText", lineText.trim().match(/`([^`]*)`/));
+    console.log("dir", reqUrl);
+    console.log("imgUrl", imgUrl);
+
+    const getImageInfo = await (async () => {
+      const { width, height, size } = await fetchImgInfo(reqUrl);
+      return `${size}(${width}x${height})`;
+    })();
+
+    const markdownString = new MarkdownString(`
+  \r\n[![](${reqUrl})](${reqUrl})
+  \r\n${getImageInfo}`);
+
+    return new Hover(markdownString);
   }
+
   languages.forEach((language: string) => {
     vscode.languages.registerHoverProvider(language, {
       provideHover,
