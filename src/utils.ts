@@ -1,5 +1,7 @@
 import sizeOf from "image-size";
 import fetch from "node-fetch";
+const path = require("path");
+const fs = require("fs");
 
 export function isImportModule(lineText: string) {
   return (
@@ -8,7 +10,7 @@ export function isImportModule(lineText: string) {
 }
 
 export function isCompleteHttpUrl(url: string) {
-  const regex = /^(http:https):\/\/[^\s/$.?#].[^\s]*$/i;
+  const regex = /^(http|https):\/\/[^\s/$.?#].[^\s]*$/i;
   return regex.test(url);
 }
 
@@ -28,6 +30,49 @@ export function fetchImgInfo(url: string) {
     });
 }
 
+export function extractImportPath(str: string, keyword: string) {
+  let pattern = /import\s+{\s+(?:\w+\s*,\s*)*\w+\s+}\s+from\s+'(.*?)'/g;
+  let match;
+
+  while ((match = pattern.exec(str)) !== null) {
+    let importStatement = match[0];
+    let importPath = match[1];
+
+    if (importStatement.includes(keyword)) {
+      return importPath;
+    }
+  }
+
+  return "";
+}
+
+export function extractAbsolutePath(pathStr: string) {
+  let pattern = /^(@\/|~\/)/;
+  const relativePath = pathStr.replace(pattern, "src/");
+  return path.resolve(relativePath);
+}
+
+export function getFileText(filePath: string) {
+  try {
+    return fs.readFileSync(filePath, "utf-8");
+  } catch (error) {
+    console.error("无法读取文件:", error);
+    return "";
+  }
+}
+
+export function isDirectory(pathStr: string) {
+  try {
+    return fs.statSync(pathStr).isDirectory();
+  } catch (error) {
+    console.error("无法获取路径信息:", error);
+    return false;
+  }
+}
+
+export function isFileExists(pathStr: string) {
+  return fs.existsSync(pathStr);
+}
 /**
  * from https://stackoverflow.com/questions/10420352/converting-file-size-in-bytes-to-human-readable-string
  * Format bytes as human-readable text.
