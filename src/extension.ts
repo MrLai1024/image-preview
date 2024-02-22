@@ -10,11 +10,7 @@ import {
   isImportModule,
   fetchImgInfo,
   isCompleteHttpUrl,
-  extractImportPath,
-  extractAbsolutePath,
-  getFileText,
-  isDirectory,
-  isFileExists,
+  extractValue,
 } from "./utils";
 
 export function activate(context: ExtensionContext) {
@@ -25,45 +21,37 @@ export function activate(context: ExtensionContext) {
 
   async function provideHover(document: TextDocument, position: Position) {
     let imgUrl = "";
+    let keywordValue = "";
     const fileName = document.fileName;
+    const documentText = document.getText();
     const { line: lineNum, character: colNum } = position;
     const lineText = document.lineAt(lineNum).text;
     const dir = path.dirname(fileName);
-    console.log(dir.split("/src")[0]);
 
     if (isImportModule(lineText)) {
       return;
     }
 
-    const str = lineText?.trim().match(/"`*([^`]+)`*"/)?.[1] || "";
-    // console.log(lineText?.trim().match(/"`*([^`]+)`*"/)?.[1]);
+    const hoverUrl = lineText?.trim().match(/[`'"]([^`'"]+)[`'"]/)?.[1] || "";
 
-    if (isCompleteHttpUrl(str)) {
-      imgUrl = str;
+    if (isCompleteHttpUrl(hoverUrl)) {
+      imgUrl = hoverUrl;
     } else {
-      const value = str.match(/\${(.*?)}/)?.[1] || "";
-      // console.log(extractImportPath(document.getText(), value));
-      const importPath = extractImportPath(document.getText(), value);
-      const absolutePath = extractAbsolutePath(importPath);
-      const completePath = `${dir.split("/src")[0]}${absolutePath}`;
+      const keyword = hoverUrl.match(/\${(.*?)}/)?.[1] || "";
+      keywordValue = extractValue({ keyword, documentText, dir });
+      imgUrl = `${keywordValue || ""}${hoverUrl.replace(
+        hoverUrl.match(/\${(.*?)}/)?.[0] || "",
+        ""
+      )}`;
+    }
 
-      let fileText = "";
+    if (!isCompleteHttpUrl(imgUrl)) {
+      const matchText = documentText.match(/:src="`([^`"]+)`"/)?.[1] || "";
+      const substr = matchText.replace(/\${(.*?)}/g, "");
+      const keyword = matchText.match(/\${(.*?)}/)?.[1] || "";
 
-      if (isDirectory(completePath)) {
-        [".js", ".ts", ".vue", ".jsx", ".tsx"].forEach((item) => {
-          if (isFileExists(`${completePath}/index${item}`)) {
-            fileText = getFileText(`${completePath}/index${item}`);
-          }
-        });
-      } else {
-        fileText = getFileText(completePath);
-      }
-      let pattern = new RegExp(`${value}\\s*=\\s*([^\\s]*)`);
-      console.log(pattern.exec(fileText));
-      let x = /['"]([^'"]+)['"]/.exec(pattern.exec(fileText)?.[1] || "")?.[1];
-      console.log(x);
-
-      imgUrl = `${x}${str?.split("}")[1]}`;
+      keywordValue = extractValue({ keyword, documentText, dir });
+      imgUrl = `${keywordValue}${substr}${imgUrl}`;
     }
 
     const getImageInfo = await (async () => {
