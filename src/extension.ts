@@ -1,17 +1,6 @@
 import path from "path";
-import vscode, {
-  ExtensionContext,
-  Position,
-  TextDocument,
-  Hover,
-  MarkdownString,
-} from "vscode";
-import {
-  isImportModule,
-  fetchImgInfo,
-  isCompleteHttpUrl,
-  extractValue,
-} from "./utils";
+import vscode, { ExtensionContext, Position, TextDocument, Hover, MarkdownString } from "vscode";
+import { isImportModule, fetchImgInfo, isCompleteHttpUrl, extractValue } from "./utils";
 
 export function activate(context: ExtensionContext) {
   console.log("Image Hover Preview Started!");
@@ -38,11 +27,9 @@ export function activate(context: ExtensionContext) {
       imgUrl = hoverUrl;
     } else {
       const keyword = hoverUrl.match(/\${(.*?)}/)?.[1] || "";
+
       keywordValue = extractValue({ keyword, documentText, dir });
-      imgUrl = `${keywordValue || ""}${hoverUrl.replace(
-        hoverUrl.match(/\${(.*?)}/)?.[0] || "",
-        ""
-      )}`;
+      imgUrl = `${keywordValue || ""}${hoverUrl.replace(hoverUrl.match(/\${(.*?)}/)?.[0] || "", "")}`;
     }
 
     if (!isCompleteHttpUrl(imgUrl)) {

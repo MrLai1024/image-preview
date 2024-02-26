@@ -3,10 +3,10 @@ import fetch from "node-fetch";
 const path = require("path");
 const fs = require("fs");
 
+const os = require("os");
+
 export function isImportModule(lineText: string) {
-  return (
-    lineText.indexOf("import") !== -1 || lineText.indexOf("require") !== -1
-  );
+  return lineText.indexOf("import") !== -1 || lineText.indexOf("require") !== -1;
 }
 
 export function isCompleteHttpUrl(url: string) {
@@ -56,8 +56,19 @@ export type params = {
  */
 export function extractValue(params: params) {
   const importPath = extractImportPath(params.documentText, params.keyword);
+
   const absolutePath = extractAbsolutePath(importPath);
-  const completePath = `${params.dir.split("/src")[0]}${absolutePath}`;
+  let completePath = "";
+
+  if (os.type() === "Windows_NT") {
+    // window
+    completePath = `${params.dir.split("src")[0]}${absolutePath.replace("/", "\\")}`;
+  } else if (os.type() === "Darwin") {
+    // mac
+    completePath = `${params.dir.split("/src")[0]}${absolutePath}`;
+  } else {
+    console.log(os.type());
+  }
 
   let fileText = "";
 
@@ -78,7 +89,7 @@ export function extractValue(params: params) {
 export function extractAbsolutePath(pathStr: string) {
   let pattern = /^(@\/|~\/)/;
   const relativePath = pathStr.replace(pattern, "src/");
-  return path.resolve(relativePath);
+  return os.type() === "Windows_NT" ? relativePath : path.resolve(relativePath);
 }
 
 export function getFileText(filePath: string) {
@@ -129,10 +140,7 @@ export function humanFileSize(bytes: number, si = false, dp = 1) {
   do {
     bytes /= thresh;
     ++u;
-  } while (
-    Math.round(Math.abs(bytes) * r) / r >= thresh &&
-    u < units.length - 1
-  );
+  } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
 
   return bytes.toFixed(dp) + " " + units[u];
 }
